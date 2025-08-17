@@ -1,0 +1,204 @@
+import tkinter as tk
+from tkinter import messagebox, ttk
+from collections import deque
+
+class VendingMachineApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Vending Machine ")
+        self.root.geometry("450x600")
+        self.root.configure(bg="#89CFF0")  # Baby blue background
+
+        # Inisialisasi stok menggunakan kode angka 
+        self.items = {
+            '1': {'name': 'Cola ', 'price': 15000, 'stock': deque(['Cola'] * 5)},
+            '2': {'name': 'Chips ', 'price': 12000, 'stock': deque(['Chips'] * 8)},
+            '3': {'name': 'Water ', 'price': 10000, 'stock': deque(['Candy'] * 10)},
+            '4': {'name': 'Milk ', 'price': 10000, 'stock': deque(['Milk'] * 10)},
+            '5': {'name': 'Pop Mie', 'price': 12000, 'stock' : deque(['Pop Mie'] * 5)}
+        }
+        self.balance = 0
+
+        self.label_title = tk.Label(
+            root,
+            text=" Vending Machine ",
+            font=("Times New Roman", 17, "bold"),
+            bg="#89CFF0",
+            fg="#2E4053"
+        )
+        self.label_title.pack(pady=10)
+
+        self.label_menu = tk.Label(
+            root,
+            text="📋 Menu :",
+            font=("Comic Sans Ms", 12),
+            bg="#89CFF0",
+            fg="#2E4053"
+        )
+        self.label_menu.pack()
+
+        # Styling tabel
+        style = ttk.Style()
+        style.theme_use("default")
+        style.configure("Treeview",
+                        background="#E0F7FA",
+                        foreground="#2E4053",
+                        rowheight=25,
+                        fieldbackground="#E0F7FA",
+                        font=("Arial", 10))
+        style.configure("Treeview.Heading",
+                        font=("Comic Sans MS", 10, "bold"),
+                        background="#4FC3F7",
+                        foreground="#2E4053")
+        style.map("Treeview", background=[("selected", "#81D4FA")])
+
+        # Treeview sebagai tabel menu
+        self.tree_menu = ttk.Treeview(root, columns=("Kode", "Nama", "Harga", "Stok"), show="headings", height=5)
+        self.tree_menu.heading("Kode", text="Kode")
+        self.tree_menu.heading("Nama", text="Nama")
+        self.tree_menu.heading("Harga", text="Harga")
+        self.tree_menu.heading("Stok", text="Stok")
+        self.tree_menu.column("Kode", width=60, anchor="center")
+        self.tree_menu.column("Nama", width=140)
+        self.tree_menu.column("Harga", width=100, anchor="center")
+        self.tree_menu.column("Stok", width=60, anchor="center")
+        self.tree_menu.pack(pady=5)
+
+        self.update_menu()
+
+        self.label_money = tk.Label(
+            root,
+            text="💰 Masukkan Uang (Rp):",
+            font=("Comic Sans MS", 10),
+            bg="#89CFF0",
+            fg="#2E4053"
+        )
+        self.label_money.pack()
+
+        self.entry_money = tk.Entry(root, width=20, bg="#E6F3FA", fg="#2E4053")
+        self.entry_money.pack(pady=5)
+        self.entry_money.focus()
+
+        self.button_insert = tk.Button(
+            root,
+            text="➕ Masukkan Uang",
+            command=self.insert_money,
+            font=("Comic Sans MS", 10),
+            bg="#4FC3F7",
+            fg="#2E4053",
+            activebackground="#81D4FA"
+        )
+        self.button_insert.pack(pady=5)
+
+        self.label_select = tk.Label(
+            root,
+            text="🛒 Pilih Kode (1, 2, 3, 4, 5):",
+            font=("Comic Sans MS", 10),
+            bg="#89CFF0",
+            fg="#2E4053"
+        )
+        self.label_select.pack()
+
+        self.entry_code = tk.Entry(root, width=10, bg="#E6F3FA", fg="#2E4053")
+        self.entry_code.pack(pady=5)
+
+        self.button_select = tk.Button(
+            root,
+            text="✅ Pilih Item",
+            command=self.select_item,
+            font=("Comic Sans MS", 10),
+            bg="#4FC3F7",
+            fg="#2E4053",
+            activebackground="#81D4FA"
+        )
+        self.button_select.pack(pady=5)
+
+        self.label_balance = tk.Label(
+            root,
+            text="💸 Saldo: Rp0",
+            font=("Comic Sans MS", 10),
+            bg="#89CFF0",
+            fg="#2E4053"
+        )
+        self.label_balance.pack(pady=10)
+
+        self.button_refund = tk.Button(
+            root,
+            text="↩ Kembalikan Uang",
+            command=self.return_money,
+            font=("Comic Sans MS", 10),
+            bg="#A5D6A7",
+            fg="#2E4053",
+            activebackground="#C8E6C9"
+        )
+        self.button_refund.pack(pady=5)
+
+        self.button_exit = tk.Button(
+            root,
+            text="🚪 Keluar",
+            command=self.root.quit,
+            font=("Comic Sans MS", 10),
+            bg="#EF9A9A",
+            fg="#2E4053",
+            activebackground="#FFCDD2"
+        )
+        self.button_exit.pack(pady=5)
+
+        # Bind Enter key
+        self.entry_money.bind("<Return>", lambda event: self.insert_money())
+        self.entry_code.bind("<Return>", lambda event: self.select_item())
+
+    def update_menu(self):
+        self.tree_menu.delete(*self.tree_menu.get_children())
+        for code, item in self.items.items():
+            harga = f"Rp{item['price']}"
+            stok = len(item['stock']) if item['stock'] else "Habis ❌"
+            self.tree_menu.insert("", tk.END, values=(code, item['name'], harga, stok))
+
+    def insert_money(self):
+        try:
+            amount = int(self.entry_money.get())
+            if amount > 0:
+                self.balance += amount
+                self.label_balance.config(text=f"💸 Saldo: Rp{self.balance}")
+                messagebox.showinfo("Sukses", f"💵 Uang Rp{amount} dimasukkan!")
+                self.entry_money.delete(0, tk.END)
+            else:
+                messagebox.showerror("Error", "❌ Masukkan jumlah uang yang valid!")
+        except ValueError:
+            messagebox.showerror("Error", "❌ Masukkan angka yang valid!")
+
+    def select_item(self):
+        code = self.entry_code.get().strip()
+        if code in self.items:
+            item = self.items[code]
+            if not item['stock']:
+                messagebox.showerror("Error", f"😔 Maaf, {item['name']} habis!")
+                return
+            if self.balance >= item['price']:
+                self.balance -= item['price']
+                item_name = item['stock'].popleft()
+                self.label_balance.config(text=f"💸 Saldo: Rp{self.balance}")
+                messagebox.showinfo("Sukses", f"🎉 Anda membeli {item_name}!\n💰 Sisa saldo: Rp{self.balance}")
+                self.update_menu()
+                self.entry_code.delete(0, tk.END)
+            else:
+                messagebox.showerror("Error", f"😟 Uang tidak cukup! Harga {item['name']} adalah Rp{item['price']}")
+        else:
+            messagebox.showerror("Error", "❌ Kode item tidak valid!")
+
+    def return_money(self):
+        if self.balance > 0:
+            messagebox.showinfo("Kembalian", f"💰 Uang dikembalikan: Rp{self.balance}")
+            self.balance = 0
+            self.label_balance.config(text=f"💸 Saldo: Rp{self.balance}")
+        else:
+            messagebox.showinfo("Info", "Tidak ada saldo untuk dikembalikan.")
+
+def main():
+    root = tk.Tk()
+    app = VendingMachineApp(root)
+    root.mainloop()
+
+if __name__ == "__main__":
+    main()
